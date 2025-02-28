@@ -116,7 +116,7 @@ Currently, the system uses a local file-based approach for storing invoices. How
 ```
 
 ## Development Notes
-- **Data Storage**: Currently, the system stores all data in JSON files. In the future, invoice data will be migrated to the Celestia network for decentralized storage.
+- **Data Storage**: Currently, the system stores all data in JSON files. In the future, invoice data will be migrated to the Celestia network for decentralized storage. Check https://www.quicknode.com/docs/celestia/blob.submit
 - **Authentication**: Users are authenticated via their wallet address. If a user doesn't exist, they are created with a random alias.
 
 ## Contact
