@@ -1,21 +1,23 @@
 const http = require('http');
 const url = require('url');
 const fs = require('fs');
+const { authController } = require('./auth');
+const { usersController } = require('./users');
 
 const port = 8000;
 let jsonArray = [];
 
 // Load existing data from a file on startup if it exists
 const loadData = () => {
-  if (fs.existsSync('invoices.json')) {
-    const data = fs.readFileSync('invoices.json', 'utf8');
+  if (fs.existsSync('data.json')) {
+    const data = fs.readFileSync('data.json', 'utf8');
     jsonArray = JSON.parse(data);
   }
 };
 
 // Save the array to a file
 const saveData = () => {
-  fs.writeFileSync('invoices.json', JSON.stringify(jsonArray, null, 2));
+  fs.writeFileSync('data.json', JSON.stringify(jsonArray, null, 2));
 };
 
 loadData();
@@ -24,17 +26,22 @@ loadData();
 const server = http.createServer((req, res) => {
   const { method, url: reqUrl } = req;
   const parsedUrl = url.parse(reqUrl, true);
-  const { id, to } = parsedUrl.query; // Get query params
+  const { id, to, requester } = parsedUrl.query; // Get query params
 
   // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000'); // Specify the frontend URL (not '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Credentials', 'true'); // Allow credentials (cookies)
 
   if (method === 'OPTIONS') {
     res.writeHead(204);
     res.end();
     return;
+  }
+
+  if (method === 'GET' && parsedUrl.pathname === '/auth') {
+    return authController(req, res);
   }
 
   // Create invoice
@@ -72,14 +79,50 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify({ success: false, message: 'Item not found' }));
       }
     } else if (to) {
-      const invoices = jsonArray.filter(item => item.to.toLowerCase() === to.toLowerCase());
+      let invoices = jsonArray.filter(item => (item.type !== 'receipt' && item.to?.toLowerCase() === to.toLowerCase()));
+      invoices = invoices.map(({ id, ...etc }) => ({
+        id,
+        status: jsonArray.find(item => item.type == 'receipt' && item.invoiceId == id) ? "paid" : "unpaid",
+        ...etc,
+      }))
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(invoices));
+    } else if (requester) {
+      let invoices = jsonArray.filter(item => (item.type !== 'receipt' && item.requester?.toLowerCase() === requester.toLowerCase()));
+      invoices = invoices.map(({ id, ...etc }) => ({
+        id,
+        status: jsonArray.find(item => item.type == 'receipt' && item.invoiceId == id) ? "paid" : "unpaid",
+        ...etc,
+      }))
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(invoices));
     } else {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: false, message: 'Query parameter "id" or "to" is required' }));
     }
+  } else if (method === 'POST' && parsedUrl.pathname === '/receipt') {
+    let body = '';
 
+    req.on('data', chunk => {
+      body += chunk;
+    });
+
+    req.on('end', () => {
+      try {
+        const jsonData = JSON.parse(body);
+        jsonData.type = "receipt";
+        jsonData.status = "paid";
+        jsonArray.push(jsonData); // Add to the array
+        saveData(); // Save to the file
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true }));
+      } catch (error) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, message: 'Invalid JSON' }));
+      }
+    });
+  } else if (method === 'GET' && parsedUrl.pathname === '/users') {
+    return usersController(req, res);
   } else {
     res.writeHead(404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ success: false, message: 'Route not found' }));
