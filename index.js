@@ -3,8 +3,10 @@ const url = require('url');
 const fs = require('fs');
 const { authController } = require('./auth');
 const { usersController } = require('./users');
+require('dotenv').config();
 
-const port = 8000;
+const PORT = process.env.PORT || 8000;
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 let jsonArray = [];
 
 // Load existing data from a file on startup if it exists
@@ -29,7 +31,7 @@ const server = http.createServer((req, res) => {
   const { id, to, requester } = parsedUrl.query; // Get query params
 
   // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000'); // Specify the frontend URL (not '*')
+  res.setHeader('Access-Control-Allow-Origin', CLIENT_URL); // Specify the frontend URL (not '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Access-Control-Allow-Credentials', 'true'); // Allow credentials (cookies)
@@ -129,6 +131,6 @@ const server = http.createServer((req, res) => {
   }
 });
 
-server.listen(port, () => {
+server.listen(PORT, () => {
   console.log(`Server running at http://localhost:${port}`);
 });

@@ -39,7 +39,10 @@ This is a simple invoice management system built using Node.js. It allows users 
    npm start
    ```
 
-The server will run on `http://localhost:8000`.
+The server will run on PORT `8000`.
+
+ENV variables (set them up in .env file):
+`CLIENT_URL` & `PORT`
 
 ## Endpoints
 
