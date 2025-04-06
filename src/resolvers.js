@@ -57,16 +57,31 @@ const resolvers = {
       });
     },
     createInvoice: async (_, { to, network, requester, token, comment, amount }) => {
+      // First, check if the user exists
+      const user = await prisma.user.findUnique({
+        where: { walletAddress: requester }
+      });
+
+      if (!user) {
+        throw new Error(`User with wallet address ${requester} not found`);
+      }
+
       return await prisma.invoice.create({
         data: {
           to,
           network,
-          requester,
           token,
           comment,
           amount,
+          user: {
+            connect: {
+              walletAddress: requester
+            }
+          }
         },
-        include: { user: true },
+        include: {
+          user: true
+        }
       });
     },
     createReceipt: async (_, { invoiceId, txHash }) => {

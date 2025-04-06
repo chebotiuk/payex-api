@@ -10,10 +10,7 @@ const PORT = process.env.PORT || 8000;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 
 // Enable CORS
-app.use(cors({
-  origin: CLIENT_URL,
-  credentials: true,
-}));
+app.use(cors({}));
 
 // Create Apollo Server
 const server = new ApolloServer({
@@ -24,7 +21,13 @@ const server = new ApolloServer({
     return { req };
   },
   introspection: true,
-  playground: true,
+  playground: {
+    settings: {
+      'editor.theme': 'light',
+      'editor.cursorShape': 'line',
+      'request.credentials': 'include'
+    }
+  },
   debug: true,
   formatError: (error) => {
     console.error('GraphQL Error:', error);
@@ -39,8 +42,9 @@ async function startServer() {
     
     // Apply GraphQL middleware
     server.applyMiddleware({ 
-      app,
-      cors: false // Let express handle CORS
+      app, 
+      path: '/graphql',
+      cors: false
     });
 
     // Basic health check endpoint
